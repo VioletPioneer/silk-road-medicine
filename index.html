@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>一味药·一座城 | 药物人文记忆库 - 完整典藏版</title>
+    <!-- Leaflet CSS + JS 地图核心库 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- ECharts 知识图谱 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- 字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #fbf5e8 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" opacity="0.06"><path fill="%238B5A2B" d="M70 40 L90 20 L110 40 L105 65 L85 75 L65 65 L70 40Z"/><path d="M130 120 L150 100 L170 120 L165 145 L145 155 L125 145 L130 120Z" fill="%23B47C44"/><circle cx="40" cy="160" r="6" fill="%23C1814B"/></svg>');
+            background-repeat: repeat;
+            font-family: 'Inter', sans-serif;
+            color: #2e241f;
+        }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px 24px 40px; }
+        .hero { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #d8c9ad; padding-bottom: 18px; }
+        .hero h1 { font-family: 'ZCOOL KuaiLe', cursive; font-size: 3rem; background: linear-gradient(135deg, #8B3C1C, #C47E3A); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 8px; }
+        .hero p { font-size: 1.1rem; color: #6b4c3b; font-style: italic; }
+        .search-bar { display: flex; justify-content: center; gap: 12px; margin-bottom: 30px; flex-wrap: wrap; }
+        .search-bar input { width: 320px; padding: 12px 20px; border-radius: 48px; border: 1px solid #d4bb8c; background: #fffef7; font-size: 1rem; }
+        .search-bar button { background: #a46d3a; border: none; padding: 0 28px; border-radius: 48px; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: 0.2s; }
+        .search-bar button:hover { background: #7c4f28; }
+        .main-dashboard { display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 32px; }
+        .map-container { flex: 1.8; min-width: 280px; background: #fffef5; border-radius: 32px; border: 1px solid #ecdcaa; padding: 16px; box-shadow: 0 12px 28px rgba(0,0,0,0.08); }
+        .map-title { font-weight: 700; margin-bottom: 12px; font-size: 1.2rem; border-left: 5px solid #c1814b; padding-left: 12px; }
+        #drugMap { height: 380px; width: 100%; border-radius: 24px; background: #e9dfcb; z-index: 1; }
+        .right-panel { flex: 1.6; min-width: 360px; display: flex; flex-direction: column; gap: 20px; }
+        .video-card { background: #fffef5; border-radius: 32px; border: 1px solid #ecdcaa; padding: 16px; }
+        .video-title { font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; border-left: 4px solid #c1814b; padding-left: 12px; }
+        .video-wrapper video { width: 100%; border-radius: 16px; max-height: 200px; object-fit: cover; background: #1a1a1a; }
+        .video-placeholder { background: #e9dfcb; border-radius: 16px; padding: 32px; text-align: center; color: #a47c54; }
+        .graph-card { background: #fffef5; border-radius: 32px; border: 1px solid #ecdcaa; padding: 16px; }
+        .graph-title { font-weight: 700; margin-bottom: 10px; }
+        #knowledgeGraph { width: 100%; height: 260px; background: #fefaf0; border-radius: 20px; }
+        .detail-card { background: #fffef5; border-radius: 32px; border: 1px solid #ecdcaa; padding: 18px; max-height: 460px; overflow-y: auto; }
+        .detail-card h3 i { margin-right: 8px; color: #b2722a; }
+        .detail-content { font-size: 0.85rem; line-height: 1.55; margin-top: 8px; }
+        .detail-section { margin-bottom: 16px; border-left: 3px solid #e2c8a3; padding-left: 12px; }
+        .detail-section strong { color: #a45d2e; font-size: 0.9rem; display: block; margin-bottom: 6px; }
+        .cross-culture { background: #fffef5; border-radius: 32px; border: 1px solid #ecdcaa; padding: 18px; }
+        .card-list { max-height: 140px; overflow-y: auto; margin: 12px 0; }
+        .culture-card { background: #f6efe0; margin: 8px 0; padding: 10px 12px; border-radius: 20px; font-size: 0.8rem; border-left: 4px solid #c18248; }
+        .submit-form { display: flex; gap: 8px; margin-top: 8px; }
+        .submit-form input { flex: 1; padding: 8px 12px; border-radius: 40px; border: 1px solid #ddceb0; background: white; }
+        .submit-form button { background: #a46d3a; border: none; padding: 0 16px; border-radius: 40px; color: white; cursor: pointer; }
+        .time-slider-area { background: #faf3e2; border-radius: 24px; padding: 12px 16px; }
+        footer { margin-top: 40px; text-align: center; font-size: 0.75rem; color: #8f6e4b; border-top: 1px solid #e2cfaa; padding-top: 24px; }
+        @media (max-width: 900px) { .hero h1 { font-size: 2rem; } .detail-card { max-height: 500px; } }
+        .leaflet-control-attribution { font-size: 9px; }
+        .map-marker-btn { background:#a46d3a; border:none; color:white; border-radius: 20px; padding: 4px 12px; margin-top:6px; cursor:pointer; }
+        .route-label { background: #e7dbbc80; font-size: 10px; font-weight:bold; white-space:nowrap; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <h1>🌏 一味药 · 一座城</h1>
+        <p>丝路药物地理志 | 宁夏枸杞 · 新疆玫瑰 · 云南三七 · 乳香 · 没药 | 点击药材，展开完整人文档案</p>
+    </div>
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="搜索药材：枸杞、玫瑰、三七、乳香、没药..." autocomplete="off">
+        <button id="searchBtn"><i class="fas fa-search"></i> 寻药</button>
+    </div>
+    <div class="main-dashboard">
+        <div class="map-container">
+            <div class="map-title"><i class="fas fa-map-marked-alt"></i> 药物地理标志 · 丝路路线</div>
+            <div id="drugMap"></div>
+            <div style="font-size: 0.7rem; margin-top: 8px; text-align: center; color:#a47c54;">📍 标记点：道地产区 | 连线为古代商路 | 点击标记查看完整档案</div>
+        </div>
+        <div class="right-panel">
+            <div class="video-card" id="videoCard">
+                <div class="video-title"><i class="fas fa-video" style="color:#c1814b;"></i> 药材影像志</div>
+                <div id="videoPlayerContainer"><div class="video-placeholder"><i class="fas fa-film" style="font-size: 2rem;"></i><p style="margin-top:8px;">点击药材，播放专属视频（请将视频放入 videos/ 目录）</p></div></div>
+                <div style="font-size:0.7rem; text-align:center; margin-top:6px;">支持MP4 | 命名参考: gouqi.mp4, rose.mp4, sanqi.mp4, ruxiang.mp4, moyao.mp4</div>
+            </div>
+            <div class="graph-card">
+                <div class="graph-title"><i class="fas fa-project-diagram"></i> 本草知识图谱</div>
+                <div id="knowledgeGraph" style="height: 240px;"></div>
+                <div style="font-size:0.7rem; text-align:center;">点击节点查看完整人文档案</div>
+            </div>
+            <div class="detail-card" id="drugDetailCard">
+                <h3><i class="fas fa-scroll"></i> 药材 · 人文典藏</h3>
+                <div class="detail-content" id="detailText">请点击上方地图标记或图谱中的药材节点</div>
+            </div>
+            <div class="cross-culture">
+                <h3><i class="fas fa-handshake"></i> 跨文化对话 · 丝路互鉴</h3>
+                <div class="card-list" id="cultureList"></div>
+                <div class="submit-form"><input type="text" id="newCultureInput" placeholder="分享沿线国家习俗 / 药物别名..."><button id="addCultureBtn"><i class="fas fa-plus"></i> 分享</button></div>
+            </div>
+            <div class="time-slider-area"><i class="far fa-clock"></i> 时代回响 · 穿梭历史 <input type="range" id="timeSlider" min="600" max="1900" step="1" value="1200" style="width:100%; margin:8px 0"><div id="timeHint" style="font-size:0.75rem;">🏮 宋元时期 · 香料&药材贸易鼎盛</div></div>
+        </div>
+    </div>
+    <footer>🌍 一味药·一座城 | 基于您整理的详尽史料 —— 产地·功效·诗词·故事·中外对比 | 点击药材开启深度人文之旅</footer>
+</div>
+
+<script>
+    // ======================= 完整药材数据库（依据您的整理） =======================
+    const drugGeoData = {
+        "宁夏枸杞": {
+            id:"宁夏枸杞", name: "宁夏枸杞", city: "中卫市中宁县", lat: 37.5, lng: 105.2, type: "drug",
+            videoUrl: "http://tdzdbdkyg.hd-bkt.clouddn.com/gouqi.mp4",
+            // 结构化字段
+            origin: "道地产区：宁夏中卫市中宁县（“中国枸杞之乡”）；主产区：宁夏黄河两岸",
+            environment: "枸杞喜光，喜冷凉气候，耐寒（-25℃），耐旱耐盐碱，怕积水，多生长海拔800-2700米的碱性土和沙质壤土上。",
+            efficacy: "中医：甘，平；归肝、肾、肺经。滋补肝肾、益精明目、润肺生津。\n现代：抗氧化、保肝、调节免疫、改善糖脂代谢。",
+            poems: "①苏轼《枸杞》：神药不自閟，罗生满山泽。日有牛羊忧，岁有野火厄。\n②《神农本草经》：列为上品，“主五内邪气，热中，消渴，周痹。久服，坚筋骨，轻身不老”。\n③李时珍《本草纲目》：“枸杞，补肾生精，养肝，明目，坚精骨，去疲劳，易颜色，变白，明目安神，令人长寿。”",
+            stories: "①陆游晚年眼疾，晨起煮枸杞粥，得八十五岁高寿，留下“雪霁茅堂钟磬清，晨斋枸杞一杯羹”。\n②清代御膳房设“枸杞局”，乾隆四十四年太医院列为御用上品，后宫嫔妃每日嚼服十粒。",
+            comparison: "中国：药食同源——煲汤、煮粥、泡茶、泡酒、杞菊地黄丸；滋补肝肾。\n海外（欧美/日韩）：营养补充剂（枸杞多糖提取物、果汁）；主打抗氧化、抗衰、护眼。"
+        },
+        "新疆玫瑰花": {
+            id:"新疆玫瑰花", name: "新疆玫瑰花", city: "和田地区于田县", lat: 37.11, lng: 79.92, type: "drug",
+            videoUrl: "http://tdzdbdkyg.hd-bkt.clouddn.com/xinjiang_rose.mp4",
+            origin: "道地产区：新疆和田地区，以于田沙漠玫瑰最负盛名。主产区：南疆塔克拉玛干沙漠南缘、昆仑山北麓（和田、喀什）。",
+            environment: "干旱，强日照、大温差（年均日照≈2770小时，昼夜温差15–20℃）。昆仑山雪水灌溉。喜强光，耐旱、耐盐碱、抗风沙，根系深达3米。",
+            efficacy: "中医：甘、微苦，温；归肝、脾经。行气解郁、和血止痛、疏肝理气。\n现代：抗氧化（原花青素）、调节内分泌、舒缓情绪、美容养颜。",
+            poems: "①《哈孜巴义药书》首载新疆玫瑰理气活血、养颜安神之功。\n②《食物本草》（明·姚可成）：“玫瑰，主利肺脾，益肝胆，辟邪恶之气，食之芳香甘美，令人身爽。”",
+            stories: "乾隆年间，香妃自幼嗜食玫瑰，体有异香，喀什人一语道破玄机——玫瑰养颜凝香。",
+            comparison: "中国：药用+食用+香用——玫瑰花茶、玫瑰酱、玫瑰酒、逍遥丸加玫瑰；疏肝理气。\n海外（中东/欧洲）：精油为主，玫瑰水护肤、芳疗熏香；主打芳香疗愈、护肤净化。"
+        },
+        "云南三七": {
+            id:"云南三七", name: "云南三七", city: "文山州", lat: 23.37, lng: 104.25, type: "drug",
+            videoUrl: "http://tdzdbdkyg.hd-bkt.clouddn.com/sanqi.mp4",
+            origin: "道地产区：云南文山壮族苗族自治州（“中国三七之乡”），产量占全国90%以上。主产区：文山、广西。",
+            environment: "阴生植物，喜温暖、半阴(70%)、湿润不积水，中性至微酸性砂质壤土，忌连作，海拔1200–1800m山地最佳。",
+            efficacy: "中医：甘、微苦，温；归肝、胃经。散瘀止血、消肿定痛、补血益气（生消熟补）。\n现代：双向调节凝血（止血+抗栓）、扩张冠脉、改善微循环、抗炎镇痛。",
+            poems: "①《本草纲目》：“三七近时始出，南人军中，用为金疮要药，云有奇功。”赞为“金不换”。\n②《滇南本草》：“三七味微甘而苦，颇似人参，止血散血，定痛消肿，能通能补。”\n③清代赵学敏《本草纲目拾遗》：“人参补气第一，三七补血第一”。",
+            stories: "①老虎识药：古猎人射虎，虎带箭逃入山中舔食三七草而愈，猎人仿用止血神效。\n②三七与马帮：云南茶马古道马帮用三七粉外敷内服，快速止血消肿，后官兵效仿。",
+            comparison: "中国：生消熟补——生用打粉活血止血，熟用炖汤补血益气；云南白药、血府逐瘀汤。\n海外：三七总皂苷（PNS）制剂，心脑血管药物、外用止血敷料；侧重抗血栓、改善微循环。"
+        },
+        "乳香": {
+            id:"乳香", name: "乳香", city: "阿曼佐法尔", lat: 17.0, lng: 54.0, type: "drug",
+            videoUrl: "http://tdzdbdkyg.hd-bkt.clouddn.com/ruxiang.mp4",
+            origin: "道地产区：索马里、埃塞俄比亚、也门、阿曼（阿拉伯半岛及东非）。",
+            environment: "乳香树喜热带干旱荒漠气候，高温少雨、强日照，生长在贫瘠沙质土、石灰岩山地，需明显旱季。",
+            efficacy: "中医：辛、苦，温；归心、肝、脾经。活血止痛、消肿生肌、行气通滞。\n现代：抗炎、镇痛、抗菌、抗氧化、抗肿瘤。",
+            poems: "①《名医别录》：“主风水毒肿，去恶气。疗风痹死肌，止霍乱腹痛。”\n②《本草纲目》：乳香香窜，入心经，活血定痛，故为痈疽疮疡、心腹痛要药。\n③《诸蕃志》：“乳香……其树大概类榕，以斧斫株，脂滋于外，结而成香，聚而为块。”",
+            stories: "希腊神话：不死鸟菲尼克斯衔没药、乳香筑巢，在火焰中焚烧涅槃，重生振翅。",
+            comparison: "中国：药用为主——炮制后入汤剂、丸散（仙方活命饮、七厘散）；外用研末调敷；活血止痛。\n海外（中东/欧洲/基督教）：教堂弥撒熏香、芳疗舒缓、古埃及木乃伊防腐、香水定香；主打净化、神圣感。"
+        },
+        "没药": {
+            id:"没药", name: "没药", city: "索马里/也门", lat: 10.5, lng: 48.5, type: "drug",
+            videoUrl: "http://tdzdbdkyg.hd-bkt.clouddn.com/moyao.mp4",
+            origin: "道地产区：索马里、埃塞俄比亚、阿拉伯半岛（也门、阿曼）。",
+            environment: "温暖干燥气候，适宜温度15-25℃，排水良好的沙质或砾质土壤，中性或微碱性，避免积水。",
+            efficacy: "中医：辛、苦，平；归心、肝、脾经。活血散瘀、消肿生肌、止痛。\n现代：抗炎、镇痛、抗菌、抗氧化、抗真菌。",
+            poems: "①陈藏器《本草拾遗》：“没药，味苦，平，无毒。主破血止痛，疗金疮、杖疮，诸恶疮、痔漏，卒下血。”\n②《本草述》：“久服舒筋膜，通血脉，固齿牙，长须发。”",
+            stories: "《圣经》记载：东方三博士赠耶稣黄金、乳香、没药，象征王权、神性、救赎，没药成神圣之香。",
+            comparison: "中国：药用为主，与乳香配对，入汤剂、丸散（乳没散、醒消丸）；外用生肌敛疮。\n海外：古埃及木乃伊防腐、犹太/基督教仪式熏香、阿拉伯传统医药外用；现代没药牙膏、皮肤抗菌。"
+        }
+    };
+    // 补充城市节点（地图显示）
+    const extraCities = {
+        "中宁": { name: "中宁", lat: 37.5, lng: 105.2, type: "city", story: "中国枸杞之乡，黄河灌溉绿洲" },
+        "和田": { name: "和田", lat: 37.11, lng: 79.92, type: "city", story: "玫瑰绿洲，沙漠玫瑰主要产区" },
+        "文山": { name: "文山", lat: 23.37, lng: 104.25, type: "city", story: "三七之乡，苗壮医药核心地" },
+        "佐法尔": { name: "佐法尔", lat: 17.0, lng: 54.0, type: "city", story: "乳香圣地，古代香料之路起点" },
+        "索马里海岸": { name: "索马里海岸", lat: 10.5, lng: 48.5, type: "city", story: "没药与乳香核心产区" },
+        "撒马尔罕": { name: "撒马尔罕", lat: 39.65, lng: 66.95, type: "city", story: "丝路枢纽，药物集散地" }
+    };
+    const allMapPoints = { ...drugGeoData, ...extraCities };
+    // 丝路连线
+    const silkRoadLines = [
+        { name: "陆上丝路主干", coords: [[34.34,108.94], [39.65,66.95], [33.31,44.36], [17.0,54.0], [41.9,12.5]] },
+        { name: "海上香料之路", coords: [[17.0,54.0], [13.0,77.5], [-4.5,129.9]] },
+        { name: "南方丝路药材道", coords: [[34.34,108.94], [23.37,104.25], [37.11,79.92], [39.65,66.95]] }
+    ];
+    // ---------- 初始化地图 ----------
+    let map = L.map('drugMap').setView([30, 75], 4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM & CartoDB', subdomains: 'abcd', maxZoom: 8 }).addTo(map);
+    let markers = {};
+    function drawSilkRoutes() {
+        silkRoadLines.forEach(route => {
+            L.polyline(route.coords, { color: '#c1814b', weight: 2.2, opacity: 0.65, dashArray: '5,5' }).addTo(map);
+        });
+        L.marker([37.2, 80.5], { icon: L.divIcon({ className: 'route-label', html: '🏛️ 古丝路药材商道', iconSize: [80,20] }) }).addTo(map);
+        L.marker([10, 75], { icon: L.divIcon({ className: 'route-label', html: '⚓ 海上香料之路', iconSize: [80,20] }) }).addTo(map);
+    }
+    function addMapMarkers() {
+        for(let key in allMapPoints) {
+            const p = allMapPoints[key];
+            const popupHtml = `<b>${p.name}</b><br>${p.type === 'drug' ? `🌿 道地产区: ${p.city}` : '🏙️ 丝路名城'}<br><button class="map-marker-btn" data-id="${p.name}">📜 查看完整档案</button>`;
+            const marker = L.marker([p.lat, p.lng]).addTo(map);
+            marker.bindPopup(popupHtml);
+            marker.on('popupopen', () => { setTimeout(() => { const btn = document.querySelector('.map-marker-btn'); if(btn) btn.onclick = () => showDetailFromMap(p.name); }, 50); });
+            markers[p.name] = marker;
+        }
+    }
+    function showDetailFromMap(name) {
+        let detail = drugGeoData[name] || extraCities[name];
+        if(detail && drugGeoData[name]) updateFullDetailPanel(drugGeoData[name]);
+        else if(detail) updateDetailPanelForCity(detail);
+        else updateDetailPanel({ name, story: "丝路记忆之地" });
+        if(drugGeoData[name] && markers[name]) map.setView(markers[name].getLatLng(), 7);
+        if(drugGeoData[name]) updateVideoPlayer(name, drugGeoData[name].videoUrl);
+        highlightGraphNode(name);
+    }
+    function updateVideoPlayer(drugName, videoPath) {
+        const container = document.getElementById('videoPlayerContainer');
+        if(videoPath && videoPath.trim()) {
+            container.innerHTML = `<div class="video-wrapper"><video id="dynVideo" controls style="width:100%; border-radius:16px;" onerror="this.style.display='none';this.nextSibling.style.display='block'"><source src="${videoPath}" type="video/mp4"></video><div style="display:none; background:#f3e5cf; padding:16px; text-align:center; border-radius:16px;">⚠️ 视频未找到，请将文件放入 videos/ 目录</div></div>`;
+            const vid = document.getElementById('dynVideo');
+            if(vid) vid.onerror = () => { vid.style.display='none'; if(vid.nextSibling) vid.nextSibling.style.display='block'; };
+        } else {
+            container.innerHTML = `<div class="video-placeholder"><i class="fas fa-video-slash"></i><p>「${drugName}」暂无视频，可添加 videoUrl 字段</p></div>`;
+        }
+    }
+    // 完整的人文典藏渲染
+    function updateFullDetailPanel(d) {
+        const detailDiv = document.getElementById('detailText');
+        detailDiv.innerHTML = `
+            <div style="font-size:1.3rem; font-weight:bold; margin-bottom:12px; color:#8B3C1C;">🌿 ${d.name}</div>
+            <div class="detail-section"><strong>📍 道地产区</strong><br>${d.origin || '待补充'}</div>
+            <div class="detail-section"><strong>🌱 生长环境</strong><br>${d.environment || '待补充'}</div>
+            <div class="detail-section"><strong>✨ 功效（中医+现代）</strong><br>${d.efficacy || '待补充'}</div>
+            <div class="detail-section"><strong>📜 诗词文献</strong><br>${d.poems || '待补充'}</div>
+            <div class="detail-section"><strong>📖 民间故事</strong><br>${d.stories || '待补充'}</div>
+            <div class="detail-section"><strong>🌍 中外用法对比</strong><br>${d.comparison || '待补充'}</div>
+        `;
+    }
+    function updateDetailPanelForCity(city) {
+        document.getElementById('detailText').innerHTML = `<div class="detail-section"><strong>🏙️ ${city.name}</strong><br>${city.story}</div><div class="detail-section">🔍 周边道地药材：点击药材查看完整典藏。</div>`;
+    }
+    function updateDetailPanel(data) { if(data.name && drugGeoData[data.name]) updateFullDetailPanel(drugGeoData[data.name]); else if(data.story) document.getElementById('detailText').innerHTML = `<div>${data.story}</div>`; }
+
+    // 知识图谱 (全药材)
+    const graphNodes = [
+        { id: "宁夏枸杞", name: "枸杞", type: "drug", category: 0 }, { id: "中宁", name: "中宁", type: "city", category: 1 },
+        { id: "新疆玫瑰花", name: "玫瑰", type: "drug", category: 0 }, { id: "和田", name: "和田", type: "city", category: 1 },
+        { id: "云南三七", name: "三七", type: "drug", category: 0 }, { id: "文山", name: "文山", type: "city", category: 1 },
+        { id: "乳香", name: "乳香", type: "drug", category: 0 }, { id: "佐法尔", name: "佐法尔", type: "city", category: 1 },
+        { id: "没药", name: "没药", type: "drug", category: 0 }, { id: "索马里海岸", name: "索马里", type: "city", category: 1 },
+        { id: "丝路商旅", name: "丝路商旅", type: "event", category: 2 }
+    ];
+    const graphLinks = [
+        { source: "宁夏枸杞", target: "中宁", relation: "道地产区" }, { source: "新疆玫瑰花", target: "和田", relation: "绿洲产区" },
+        { source: "云南三七", target: "文山", relation: "道地产区" }, { source: "乳香", target: "佐法尔", relation: "核心产地" },
+        { source: "没药", target: "索马里海岸", relation: "主产区" }, { source: "宁夏枸杞", target: "丝路商旅", relation: "贸易信物" },
+        { source: "乳香", target: "丝路商旅", relation: "香药之路" }, { source: "没药", target: "丝路商旅", relation: "香料贸易" }
+    ];
+    const chartDom = document.getElementById('knowledgeGraph');
+    let myChart = echarts.init(chartDom);
+    myChart.setOption({
+        tooltip: { trigger: 'item' }, series: [{
+            type: 'graph', layout: 'force', force: { repulsion: 400, edgeLength: 110 }, roam: true, draggable: true,
+            data: graphNodes, links: graphLinks, categories: [{name:'药物'},{name:'城市'},{name:'历史'}],
+            label: { show: true, position: 'right', fontSize: 10 }, lineStyle: { color: '#b78d5a', width: 1.6 }, symbolSize: 32
+        }]
+    });
+    myChart.on('click', (params) => {
+        if(params.dataType === 'node') {
+            let nodeName = params.data.id;
+            if(nodeName === "枸杞") nodeName = "宁夏枸杞"; if(nodeName === "玫瑰") nodeName = "新疆玫瑰花";
+            if(nodeName === "三七") nodeName = "云南三七";
+            const drug = drugGeoData[nodeName];
+            if(drug) { updateFullDetailPanel(drug); updateVideoPlayer(nodeName, drug.videoUrl); highlightGraphNode(nodeName); if(markers[nodeName]) map.setView(markers[nodeName].getLatLng(), 6); }
+        }
+    });
+    function highlightGraphNode(id) { myChart.dispatchAction({ type: 'highlight', seriesIndex: 0, name: id }); setTimeout(() => myChart.dispatchAction({ type: 'downplay', seriesIndex: 0, name: id }), 1500); }
+
+    // 跨文化卡片
+    let cultureCards = [
+        { id:1, text:"🇮🇷 波斯语称枸杞“Shah Tout”，护眼茶。" }, { id:2, text:"🇹🇷 土耳其玫瑰水理气美容，与和田玫瑰同源。" },
+        { id:3, text:"🇻🇳 越南三七“Tam Thất”，伤科圣药。" }, { id:4, text:"🇪🇬 古埃及用没药木乃伊防腐，神圣之香。" }
+    ];
+    function renderCultureCards() {
+        const container = document.getElementById('cultureList'); container.innerHTML = '';
+        cultureCards.forEach(c => { const div = document.createElement('div'); div.className = 'culture-card'; div.innerHTML = `<i class="fas fa-comment-dots"></i> ${c.text}`; container.appendChild(div); });
+    }
+    document.getElementById('addCultureBtn').addEventListener('click', () => {
+        const val = document.getElementById('newCultureInput').value.trim();
+        if(val) { cultureCards.unshift({ id:Date.now(), text:val }); renderCultureCards(); document.getElementById('newCultureInput').value=''; }
+        else alert('分享您的丝路见闻～');
+    });
+    // 搜索
+    document.getElementById('searchBtn').addEventListener('click', () => {
+        const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+        if(!kw) return;
+        let found = null;
+        for(let k in drugGeoData) if(k.toLowerCase().includes(kw) || drugGeoData[k].city.toLowerCase().includes(kw)) { found = drugGeoData[k]; break; }
+        if(found) { updateFullDetailPanel(found); updateVideoPlayer(found.name, found.videoUrl); if(markers[found.name]) { map.setView(markers[found.name].getLatLng(), 7); markers[found.name].openPopup(); } highlightGraphNode(found.name); }
+        else alert('未找到，试试“枸杞”“玫瑰”“三七”');
+    });
+    const timeSlider = document.getElementById('timeSlider'), timeHint = document.getElementById('timeHint');
+    timeSlider.addEventListener('input', (e) => {
+        let v = parseInt(e.target.value);
+        if(v<1000) timeHint.innerHTML = '🏜️ 600–1000年：枸杞入西夏，乳香没药进长安';
+        else if(v<1400) timeHint.innerHTML = '📜 宋元：海上香料之路兴起，三七沿南方丝路传播';
+        else if(v<1700) timeHint.innerHTML = '⚔️ 大航海：肉豆蔻战争，乳香没药全球贸易';
+        else timeHint.innerHTML = '🕰️ 近代：地理标志确立，传统医药复兴';
+    });
+    function init() { drawSilkRoutes(); addMapMarkers(); updateFullDetailPanel(drugGeoData["宁夏枸杞"]); updateVideoPlayer("宁夏枸杞", "videos/gouqi.mp4"); map.setView([30, 75], 4.2); }
+    init(); renderCultureCards();
+    window.addEventListener('resize', () => myChart.resize());
+</script>
+</body>
+</html>
